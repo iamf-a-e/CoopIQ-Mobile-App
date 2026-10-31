@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>CoopIQ | Confirm your email</title>
+  <style>
+    :root {
+      --forest: #1E4D36; --leaf: #3F8F5B; --amber: #E9A63A;
+      --ink: #16231C; --paper: #F5F7F2; --muted: #66766C; --alert: #C2452D;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+      background: var(--paper); color: var(--ink);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    .card {
+      width: 100%; max-width: 440px; background: #fff; border: 1px solid #E1E7DD;
+      border-radius: 20px; padding: 32px 28px; text-align: center;
+    }
+    .brand { font-weight: 700; font-size: 22px; color: var(--forest); letter-spacing: .2px; }
+    .badge {
+      width: 64px; height: 64px; border-radius: 50%; margin: 24px auto 16px;
+      display: grid; place-items: center; font-size: 30px; color: #fff; background: var(--muted);
+    }
+    .badge.ok { background: var(--leaf); }
+    .badge.error { background: var(--alert); }
+    .badge.loading { background: var(--amber); }
+    h1 { font-size: 22px; margin: 0 0 10px; }
+    p { margin: 0; line-height: 1.55; color: var(--muted); }
+    .btn {
+      display: inline-block; margin-top: 24px; padding: 13px 22px; border-radius: 12px;
+      background: var(--forest); color: #fff; text-decoration: none; font-weight: 600;
+    }
+    footer { margin-top: 28px; font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">CoopIQ</div>
+    <div id="badge" class="badge loading">...</div>
+    <h1 id="title">Confirming your email</h1>
+    <p id="msg">One moment.</p>
+    <a id="action" class="btn" href="https://www.urbanmunda.com" hidden>Visit CoopIQ</a>
+    <footer>Poultry and livestock health intelligence</footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Fill these in. The anon key is public by design; row level security protects your data.
+    var SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
+    var SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+    var q = new URLSearchParams(location.search);
+    var h = new URLSearchParams(location.hash.replace(/^#/, ''));
+    function get(k) { return q.get(k) || h.get(k); }
+
+    function show(kind, title, msg) {
+      var badge = document.getElementById('badge');
+      badge.className = 'badge ' + kind;
+      badge.textContent = kind === 'ok' ? '\u2713' : (kind === 'error' ? '!' : 'i');
+      document.getElementById('title').textContent = title;   // textContent on purpose:
+      document.getElementById('msg').textContent = msg;       // URL values are never inserted as HTML
+      document.getElementById('action').hidden = false;
+    }
+
+    async function run() {
+      var err = get('error_code') || get('error');
+      if (err) {
+        if (err === 'otp_expired') {
+          show('error', 'This link has expired',
+            'Confirmation links work once and only for a short time. Open the CoopIQ app, sign in, and tap "Resend confirmation email" to get a fresh one.');
+        } else {
+          show('error', 'We could not confirm your email',
+            get('error_description') || 'Please go back to the CoopIQ app and try again.');
+        }
+        return;
+      }
+
+      var tokenHash = get('token_hash');
+      if (tokenHash) {
+        var type = get('type') || 'email';
+        if (['email', 'signup', 'email_change'].indexOf(type) === -1) {
+          show('error', 'This link is not valid here', 'Please go back to the CoopIQ app and try again.');
+          return;
+        }
+        try {
+          var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+          });
+          var res = await sb.auth.verifyOtp({ token_hash: tokenHash, type: type });
+          if (res.error) throw res.error;
+          show('ok', 'Email confirmed',
+            'You are all set. Go back to the CoopIQ app and sign in with your email and password.');
+        } catch (e) {
+          var expired = e && /expired|invalid/i.test(e.message || '');
+          show('error', expired ? 'This link has expired' : 'We could not confirm your email',
+            'Open the CoopIQ app, sign in, and tap "Resend confirmation email" to get a fresh link.');
+        }
+        return;
+      }
+
+      // Arrived here after Supabase verified the link on its own server.
+      if (get('code') || get('access_token')) {
+        show('ok', 'Email confirmed',
+          'You are all set. Go back to the CoopIQ app and sign in with your email and password.');
+        return;
+      }
+
+      show('info', 'Nothing to confirm here', 'Open the confirmation link from your CoopIQ email.');
+    }
+    run();
+  </script>
+</body>
+</html>
