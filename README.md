@@ -40,7 +40,6 @@ Android, `android/app/src/main/AndroidManifest.xml`, inside `<manifest>`:
 
 ## Before shipping
 
-1. Move the model call behind your own backend. A key passed with `--dart-define` can be extracted from the APK.
-2. The Diagnose tab uses a general vision model, not a trained classifier. To match how CaCx works in DawaMom, train or fine-tune on labelled droppings and livestock images, then implement the same `diagnose()` signature against that model (on-device TFLite or your API). Nothing in the UI changes.
+1. The Diagnose tab uses a general vision model, not a trained classifier. To match how CaCx works in DawaMom, train or fine-tune on labelled droppings and livestock images, then implement the same `diagnose()` signature against that model (on-device TFLite or your API). Nothing in the UI changes.
 3. Have an agrovet review the prompt in `diagnose()` and the disease list.
-4. Nyanja, Bemba, Lozi and Tonga replies come from the model's own ability in those languages. Have native speakers check them, as you did for Shona and Ndebele.
+4. Nyanja, Bemba, Lozi and Tonga replies come from the model's own ability in those languages. Have native speakers check them.
