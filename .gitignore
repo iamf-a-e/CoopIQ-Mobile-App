@@ -8,3 +8,5 @@ env.json
 *.keystore
 *.jks
 android/key.properties
+.DS_Store
+supabase/.temp/
